@@ -1,0 +1,9 @@
+transformers
+datasets
+evaluate
+numpy
+torch
+rouge_score
+sentencepiece
+accelerate
+wandb
