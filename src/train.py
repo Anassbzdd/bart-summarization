@@ -12,26 +12,39 @@ import wandb
 import os
 
 import torch
+
+sweep_config = {
+    'method': 'bayes', 
+    'metric': {
+        'name': 'eval/rougeL', 
+        'goal': 'maximize'
+    },
+    'parameters': {
+        'learning_rate': {
+            'distribution': 'log_uniform_values',
+            'min': 1e-5,
+            'max': 1e-4
+        },
+        'weight_decay': {
+            'values': [0.01, 0.05, 0.1]
+        },
+        'per_device_train_batch_size': {
+            'values': [4, 8] 
+        },
+        'num_train_epochs': {
+            'values': [3, 5]
+        }
+    }
+}
+
+sweep_id = wandb.sweep(sweep_config, project=WANDB_PROJECT)
+
 device = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Using device: {device}")
 
-# Wandb
-wandb.init(project=WANDB_PROJECT)
-
-# 1. load model
-model = BartForConditionalGeneration.from_pretrained(MODEL_NAME)
-# Move model to GPU
-model.to(device)
 
 # 2. load datasets
 train_data , val_data = get_datasets()
-
-# 3. data collator
-data_collator = DataCollatorForSeq2Seq(
-    model= model,
-    padding= True,
-    tokenizer=tokenizer
-)
 
 rouge = evaluate.load('rouge')
 
@@ -54,38 +67,63 @@ def compute_metrics(eval_pred):
     )
     return rouge_compute
 
-training_args = Seq2SeqTrainingArguments(
-    output_dir=OUTPUT_DIR,
-    per_device_train_batch_size= BATCH_SIZE,
-    per_device_eval_batch_size= BATCH_SIZE,
-    num_train_epochs= NUM_EPOCHS,
-    learning_rate= LEARNING_RATE,
-    fp16= True,
-    logging_steps=LOGGING_STEPS,
-    warmup_steps= WARMUP_STEPS,
-    weight_decay= WEIGHT_DECAY,
-    save_strategy= 'epoch',
-    predict_with_generate=True, # every time the model wants to calculate the rote will use this line
-    eval_strategy = 'epoch',
-    report_to='wandb',
-    run_name= 'model',
-    load_best_model_at_end=True
-)
 
-trainer = Seq2SeqTrainer(
-    model= model,
-    args = training_args,
-    data_collator=data_collator,
-    train_dataset= train_data,
-    eval_dataset=val_data,
-    compute_metrics=compute_metrics,
-    processing_class= tokenizer
-)
+def train_sweep():
+    with wandb.init():
+        config = wandb.config
 
-trainer.train()
+        model = BartForConditionalGeneration.from_pretrained(MODEL_NAME)
+        model.to(device)
+        data_collator = DataCollatorForSeq2Seq(
+            model= model,
+            padding= True,
+            tokenizer=tokenizer
+        )
 
-trainer.save_model('/content/drive/MyDrive/project/best_model')
-tokenizer.save_pretrained('/content/drive/MyDrive/project/best_model')
+        training_args = Seq2SeqTrainingArguments(
+            output_dir=OUTPUT_DIR,
+            per_device_train_batch_size= config.per_device_train_batch_size,
+            per_device_eval_batch_size= config.per_device_train_batch_size,
+            num_train_epochs= config.num_train_epochs,
+            learning_rate= config.learning_rate,
+            fp16= torch.cuda.is_available(),
+            logging_steps=LOGGING_STEPS,
+            warmup_steps= WARMUP_STEPS,
+            weight_decay= config.weight_decay,
+            save_strategy= 'epoch',
+            eval_strategy = 'epoch',
+            report_to='wandb',
+            load_best_model_at_end=True,
+            metric_for_best_model='rougeL',
+            run_name = wandb.run.name,
+            generation_max_length=128,
+            predict_with_generate=True,
+            seed = 69
+
+        )
+
+        trainer = Seq2SeqTrainer(
+            model= model,
+            args = training_args,
+            data_collator=data_collator,
+            train_dataset= train_data,
+            eval_dataset=val_data,
+            compute_metrics=compute_metrics,
+            processing_class= tokenizer
+        )
+
+        trainer.train()
+
+        trainer.save_model('/content/drive/MyDrive/project/best_model')
+        tokenizer.save_pretrained('/content/drive/MyDrive/project/best_model')
+    
+wandb.agent(sweep_id, function=train_sweep)
+
+
+
+
+
+
 
 
 

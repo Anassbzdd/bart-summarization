@@ -15,8 +15,8 @@ MAX_INPUT_LENGTH  = 1024
 MAX_TARGET_LENGTH = 128
 
 # ---- subset ----
-TRAIN_SIZE        = 10000
-VAL_SIZE          = 1000
+TRAIN_SIZE        = 3000
+VAL_SIZE          = 300
 TEST_SIZE         = 3
 
 # ---- model ----
