@@ -51,6 +51,9 @@ rouge = evaluate.load('rouge')
 def compute_metrics(eval_pred):
     predictions, labels = eval_pred
 
+    predictions = np.where(predictions != -100 ,labels, tokenizer.pad_token_id )
+    predictions = np.clip(predictions, 0, tokenizer.vocab_size - 1)
+
     decoded_pred = tokenizer.batch_decode(
         predictions, 
         skip_special_tokens = True
