@@ -49,9 +49,10 @@ train_data , val_data = get_datasets()
 rouge = evaluate.load('rouge')
 
 def compute_metrics(eval_pred):
-    logits, labels = eval_pred
+    predictions, labels = eval_pred
+
     decoded_pred = tokenizer.batch_decode(
-        logits, 
+        predictions, 
         skip_special_tokens = True
     )
 
@@ -81,7 +82,7 @@ def train_sweep():
         )
 
         training_args = Seq2SeqTrainingArguments(
-            output_dir=OUTPUT_DIR,
+            output_dir= f'/kaggle/working/project/checkpoints/{wandb.run.name}',
             per_device_train_batch_size= config.per_device_train_batch_size,
             per_device_eval_batch_size= config.per_device_train_batch_size,
             num_train_epochs= config.num_train_epochs,
@@ -114,10 +115,11 @@ def train_sweep():
 
         trainer.train()
 
-        trainer.save_model('/content/drive/MyDrive/project/best_model')
-        tokenizer.save_pretrained('/content/drive/MyDrive/project/best_model')
+        save = f"/kaggle/working/project/{wandb.run.name}"
+        trainer.save_model(save)
+        tokenizer.save_pretrained(save)
     
-wandb.agent(sweep_id, function=train_sweep)
+wandb.agent(sweep_id, function=train_sweep, count = 6)
 
 
 
