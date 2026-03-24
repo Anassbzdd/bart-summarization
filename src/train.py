@@ -85,7 +85,9 @@ def train_sweep():
         )
 
         training_args = Seq2SeqTrainingArguments(
-            output_dir= f'/kaggle/working/project/checkpoints/{wandb.run.name}',
+            output_dir= f'./checkpoints',
+            generation_num_beams=4,
+            save_total_limit=1,
             per_device_train_batch_size= config.per_device_train_batch_size,
             per_device_eval_batch_size= config.per_device_train_batch_size,
             num_train_epochs= config.num_train_epochs,
@@ -117,12 +119,8 @@ def train_sweep():
         )
 
         trainer.train()
-
-        save = f"/kaggle/working/project/{wandb.run.name}"
-        trainer.save_model(save)
-        tokenizer.save_pretrained(save)
     
-wandb.agent(sweep_id, function=train_sweep, count = 10)
+wandb.agent(sweep_id, function=train_sweep, count = 5)
 
 
 
