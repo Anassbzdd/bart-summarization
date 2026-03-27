@@ -1,69 +1,49 @@
-from transformers import BartTokenizer
-from config import *
 from datasets import load_dataset
+from config import *
+from transformers import BartTokenizer
 
-tokenizer = BartTokenizer.from_pretrained(MODEL_NAME)
+def tokenizer(model_name = MODEL_NAME):
+    return BartTokenizer.from_pretrained(model_name)
 
-def load_and_filter_data():
-    data = load_dataset(DATASET_NAME, DATASET_VERSION)
 
-    for split in ['train','test','validation']:
-        data[split] = data[split].filter(lambda x : MIN_SUMMARY_LEN < len(x['highlights'].split()) < MAX_SUMMARY_LEN and
-                                MIN_ARTICLE_LEN < len(x['article'].split()) < MAX_ARTICLE_LEN)
-        
-    training_data = data['train'].select(range(TRAIN_SIZE))
-    validation_data = data['validation'].select(range(VAL_SIZE))
+def _filter_example(example):
+    article_length = len(example['article'].split())
+    summary_length = len(example['highlights'].split())
+    return (
+        MIN_ARTICLE_LEN < article_length < MAX_ARTICLE_LEN
+        MIN_SUMMARY_LEN < summary_length < MAX_SUMMARY_LEN
+    )
 
-    return training_data, validation_data
+def load_dataset(train_size=None , val_size=None , test_size=None):
+    dataset = load_dataset(DATASET_NAME, DATASET_VERSION)
 
-def preprocess(example):
-    model_input = tokenizer(
+    for split in ['train', 'validation', 'test']:
+        dataset[split] = dataset[split].filter(_filter_example)
+
+    train_size = TRAIN_SIZE if train_size is None else train_size
+    val_size = VAL_SIZE if val_size is None else val_size
+    test_size = TEST_SIZE if test_size is None else test_size
+
+    training_data = dataset.select(range(min(train_size, len(dataset['train']))))
+    validation_data = dataset.select(range(min(val_size, len(dataset['validation']))))
+    test_data = dataset.select(range(min(train_size, len(dataset['train']))))
+
+    return training_data, validation_data, test_data
+
+def preprocess_batch(example, tokenizer):
+    input = tokenizer(
         example['article'],
         padding = 'max_length',
-        truncation = True,
-        max_length = MAX_INPUT_LENGTH
+        max_length = MAX_ARTICLE_LEN,
+        truncation = True
     )
-
     labels = tokenizer(
-        example['highlights'],
+        example['article'],
         padding = 'max_length',
-        truncation = True,
-        max_length = MAX_TARGET_LENGTH
+        max_length = MAX_TARGET_LENGTH,
+        truncation = True
     )
+     = 
 
-    model_input['labels'] = labels['input_ids']
 
-    return model_input
-
-def fixlabels(example):
-    example['labels'] = [ 
-        -100 if token == tokenizer.pad_token_id else token
-        for token in example['labels']
-    ]
-    return example
-
-def get_datasets():
-    train , val = load_and_filter_data()
-
-    train_data = train.map(
-        preprocess,
-        batched = False,
-        remove_columns= ['id', 'article', 'highlights']
-    )
-    val_data = val.map(
-        preprocess,
-        batched = False,
-        remove_columns= ['id', 'article', 'highlights']
-    )
-
-    train_data = train_data.map(
-        fixlabels,
-        batched = False
-    )
-    val_data = val_data.map(
-        fixlabels,
-        batched = False
-    )
-
-    return train_data , val_data
 
