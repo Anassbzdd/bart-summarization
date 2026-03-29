@@ -15,8 +15,8 @@ MAX_INPUT_LENGTH  = 1024
 MAX_TARGET_LENGTH = 128
 
 # ---- subset ----
-TRAIN_SIZE        = 3000
-VAL_SIZE          = 300
+TRAIN_SIZE        = 5000
+VAL_SIZE          = 500
 TEST_SIZE         = 3
 
 # ---- model ----
@@ -31,6 +31,8 @@ WARMUP_STEPS      = 300
 WEIGHT_DECAY      = 0.01
 FP16              = True
 LOGGING_STEPS     = 100
+EARLY_STOPPING_PATIENCE = 2
+EARLY_STOPPING_THRESHOLD = 0.0
 
 # Wandb
 WANDB_PROJECT = "summarization-bart"

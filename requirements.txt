@@ -7,3 +7,5 @@ rouge_score
 sentencepiece
 accelerate
 wandb
+fastapi
+uvicorn

@@ -1,63 +1,116 @@
-# BART Text Summarization — CNN/DailyMail Fine-Tune
+# BART Text Summarization on CNN/DailyMail
 
-Fine-tuning `facebook/bart-base` on the CNN/DailyMail dataset for abstractive text summarization. Trained with [Hugging Face Transformers](https://huggingface.co/docs/transformers) and tracked via [Weights & Biases](https://wandb.ai/).
+This project fine-tunes `facebook/bart-base` for abstractive summarization on the CNN/DailyMail dataset using Hugging Face Transformers. It was built as a portfolio NLP project and includes training, inference, and ROUGE-based evaluation scripts.
 
----
+## Why This Project Matters
 
-## 📋 Project Overview
+This is a good end-to-end ML example because it covers:
+
+- transfer learning with a pretrained sequence-to-sequence model
+- dataset filtering and preprocessing
+- experiment tracking with Weights & Biases
+- command-line training and inference workflows
+- held-out evaluation with ROUGE metrics
+
+## Project Structure
+
+```text
+src/
+  config.py           # Central configuration values
+  preprocessing.py    # Dataset loading, filtering, tokenization
+  train.py            # Training entry point
+  inference.py        # Summarize custom text from the CLI
+  evaluate_model.py   # Evaluate a saved model on held-out test data
+```
+
+## Training Setup
 
 | Item | Detail |
 |---|---|
-| **Base Model** | `facebook/bart-base` |
-| **Dataset** | CNN/DailyMail |
-| **Task** | Abstractive Summarization |
-| **Training Environment** | Kaggle (GPU T4 x2) |
-| **Experiment Tracking** | Weights & Biases (W&B) |
+| Base model | `facebook/bart-base` |
+| Dataset | `abisee/cnn_dailymail` (`3.0.0`) |
+| Task | Abstractive summarization |
+| Default train subset | 3,000 examples |
+| Default validation subset | 300 examples |
+| Default test subset | 3 examples |
+| Frameworks | Transformers, Datasets, PyTorch |
+| Tracking | Weights & Biases |
 
----
+## Results Snapshot
 
-## 🏋️ Training Results
+These are the current reported results from the original run:
 
 | Metric | Value |
 |---|---|
-| **Train Loss** | 1.9233 |
-| **Eval Loss** | 2.1319 |
-| **Epochs** | 3 |
-| **Global Steps** | 3,750 |
-| **Total FLOPs** | ~18.3 PFLOPs |
-| **Grad Norm** | 4.77 |
-| **Final Learning Rate** | 7.39 × 10⁻⁷ |
+| Train loss | 1.9233 |
+| Eval loss | 2.1319 |
+| ROUGE-1 | 0.2361 |
+| ROUGE-2 | 0.0980 |
+| ROUGE-L | 0.1965 |
+| ROUGE-Lsum | 0.2180 |
 
----
+Because this project trains on a subset of CNN/DailyMail, the scores should be treated as a baseline rather than a fully optimized benchmark result.
 
-## 📊 ROUGE Scores
-
-| Metric | Score |
-|---|---|
-| **ROUGE-1** | 0.2361 |
-| **ROUGE-2** | 0.0980 |
-| **ROUGE-L** | 0.1965 |
-| **ROUGE-Lsum** | 0.2180 |
-
-> ROUGE-1 of ~0.24 is a reasonable baseline for `bart-base` fine-tuned on a subset of CNN/DailyMail. `bart-large-cnn` (fully fine-tuned by Meta) typically achieves ROUGE-1 ~0.44.
-
----
-
-## ⚡ Throughput
-
-| Phase | Samples/sec | Steps/sec | Runtime |
-|---|---|---|---|
-| **Training** | 15.25 | 1.91 | ~32.8 min |
-| **Evaluation** | 8.23 | 1.03 | ~2.0 min |
-
----
-
-## 🚀 Quick Start
-
-### Install dependencies
+## Installation
 
 ```bash
-pip install transformers datasets evaluate rouge_score wandb
+pip install -r requirements.txt
 ```
 
+## How To Run
 
+Run commands from the project root.
+
+### 1. Train the model
+
+```bash
+python src/train.py --output-dir outputs/bart-cnn
+```
+
+Optional W&B logging:
+
+```bash
+python src/train.py --output-dir outputs/bart-cnn --use-wandb --run-name bart-baseline
+```
+
+Optional hyperparameter sweep:
+
+```bash
+python src/train.py --use-wandb --run-sweep --wandb-project summarization-bart
+```
+
+### 2. Summarize your own text
+
+```bash
+python src/inference.py --model-path outputs/bart-cnn --text "Your article goes here."
+```
+
+Or summarize from a file:
+
+```bash
+python src/inference.py --model-path outputs/bart-cnn --text-file sample_article.txt
+```
+
+### 3. Evaluate on held-out test data
+
+```bash
+python src/evaluate_model.py --model-path outputs/bart-cnn --test-size 100 --save-path outputs/bart-cnn/test_metrics.json
+```
+
+## Recommended Portfolio Improvements
+
+If you want to keep improving this project, the highest-value next steps are:
+
+1. Increase the training subset or train on the full dataset.
+2. Compare multiple models such as `bart-base`, `bart-large-cnn`, and `t5-small`.
+3. Add qualitative examples that show article, reference summary, and model prediction side by side.
+4. Build a small Gradio or Streamlit demo for recruiters to try.
+5. Save W&B charts or screenshots in the repo so the results feel more concrete.
+
+## What I Learned
+
+This project demonstrates the practical workflow of adapting a pretrained transformer to a real summarization task, measuring quality with ROUGE, and organizing an ML repo so it is easier to reproduce and present.
+
+## License
+
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
