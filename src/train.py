@@ -128,8 +128,7 @@ def build_trainer(args, trial_config=None):
         data_collator=data_collator,
         train_dataset=train_data,
         eval_dataset=val_data,
-        compute_metrics=compute_metrics_builder(tokenizer),
-        tokenizer=tokenizer,
+        compute_metrics=compute_metrics_builder(tokenizer)
     )
     return trainer, tokenizer
 
