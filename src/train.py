@@ -11,7 +11,10 @@ from transformers import (
     Seq2SeqTrainer,
     Seq2SeqTrainingArguments,
     DataCollatorForSeq2Seq,
+<<<<<<< HEAD
     EarlyStoppingCallback,
+=======
+>>>>>>> f57ca226731cbd8898e5dbce420a4776024b4686
 )
 
 from config import (
@@ -24,8 +27,11 @@ from config import (
     WANDB_PROJECT,
     WARMUP_STEPS,
     WEIGHT_DECAY,
+<<<<<<< HEAD
     EARLY_STOPPING_PATIENCE,
     EARLY_STOPPING_THRESHOLD,
+=======
+>>>>>>> f57ca226731cbd8898e5dbce420a4776024b4686
 )
 from preprocessing import get_datasets, get_tokenizer
 
@@ -54,8 +60,11 @@ def parse_args():
     parser.add_argument("--save-metrics-path", default=None)
     parser.add_argument("--run-sweep", action="store_true")
     parser.add_argument("--sweep-count", type=int, default=5)
+<<<<<<< HEAD
     parser.add_argument("--early-stopping-patience", type=int, default=EARLY_STOPPING_PATIENCE)
     parser.add_argument("--early-stopping-threshold", type=float, default=EARLY_STOPPING_THRESHOLD)
+=======
+>>>>>>> f57ca226731cbd8898e5dbce420a4776024b4686
     return parser.parse_args()
 
 
@@ -135,12 +144,15 @@ def build_trainer(args, trial_config=None):
         eval_dataset=val_data,
         compute_metrics=compute_metrics_builder(tokenizer),
         tokenizer=tokenizer,
+<<<<<<< HEAD
         callbacks=[
             EarlyStoppingCallback(
                 early_stopping_patience=args.early_stopping_patience,
                 early_stopping_threshold=args.early_stopping_threshold,
             )
         ],
+=======
+>>>>>>> f57ca226731cbd8898e5dbce420a4776024b4686
     )
     return trainer, tokenizer
 
