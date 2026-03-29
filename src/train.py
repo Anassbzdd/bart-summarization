@@ -1,12 +1,34 @@
 import argparse
-import torch
-from config import *
-from preprocessing import get_datasets, get_tokenizer
-from transformers import BartForConditionalGeneration , Seq2SeqTrainer , Seq2SeqTrainingArguments , DataCollatorForSeq2Seq 
+import json
+import os
+
 import evaluate
 import numpy as np
-import os
-import json
+import torch
+import wandb
+from transformers import (
+    BartForConditionalGeneration,
+    Seq2SeqTrainer,
+    Seq2SeqTrainingArguments,
+    DataCollatorForSeq2Seq,
+)
+
+from config import (
+    BATCH_SIZE,
+    LEARNING_RATE,
+    LOGGING_STEPS,
+    MODEL_NAME,
+    NUM_EPOCHS,
+    OUTPUT_DIR,
+    WANDB_PROJECT,
+    WARMUP_STEPS,
+    WEIGHT_DECAY,
+)
+from preprocessing import get_datasets, get_tokenizer
+
+
+rouge = evaluate.load("rouge")
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Fine-tune BART on CNN/DailyMail.")
@@ -31,7 +53,6 @@ def parse_args():
     parser.add_argument("--sweep-count", type=int, default=5)
     return parser.parse_args()
 
-rouge = evaluate.load('rouge')
 
 def compute_metrics_builder(tokenizer):
     def compute_metrics(eval_pred):
@@ -58,30 +79,31 @@ def compute_metrics_builder(tokenizer):
 
     return compute_metrics
 
-def build_trainer(args , trial_config = None):
+
+def build_trainer(args, trial_config=None):
     config = trial_config or args
     tokenizer = get_tokenizer(args.model_name)
-    train_data , val_data = get_datasets(
-        tokenizer= tokenizer,
-        train_size=args.train_size,
-        val_size=args.val_size ,
-    )
-
-    model = BartForConditionalGeneration.from_pretrained(MODEL_NAME)
-    data_collator = DataCollatorForSeq2Seq(
-        model = model,
+    train_data, val_data = get_datasets(
         tokenizer=tokenizer,
-        padding= True,
+        train_size=args.train_size,
+        val_size=args.val_size,
     )
 
-    report_to = 'wandb' if args.use_wandb else None
+    model = BartForConditionalGeneration.from_pretrained(args.model_name)
+    data_collator = DataCollatorForSeq2Seq(
+        model=model,
+        tokenizer=tokenizer,
+        padding=True,
+    )
+
+    report_to = "wandb" if args.use_wandb else "none"
     run_name = args.run_name if args.use_wandb else None
 
-    training_arguments = Seq2SeqTrainingArguments(
+    training_args = Seq2SeqTrainingArguments(
         output_dir=args.output_dir,
         save_total_limit=1,
         save_strategy="epoch",
-        evaluation_strategy="epoch",
+        eval_strategy="epoch",
         load_best_model_at_end=True,
         metric_for_best_model="rougeL",
         predict_with_generate=True,
@@ -101,15 +123,16 @@ def build_trainer(args , trial_config = None):
     )
 
     trainer = Seq2SeqTrainer(
-        model = model,
-        args = training_arguments,
-        train_dataset=train_data,
-        eval_dataset= val_data,
+        model=model,
+        args=training_args,
         data_collator=data_collator,
-        tokenizer = tokenizer,
-        compute_metrics=compute_metrics_builder(tokenizer)
+        train_dataset=train_data,
+        eval_dataset=val_data,
+        compute_metrics=compute_metrics_builder(tokenizer),
+        tokenizer=tokenizer,
     )
-    return trainer , tokenizer
+    return trainer, tokenizer
+
 
 def save_metrics(metrics, output_path):
     if not output_path:
@@ -117,10 +140,87 @@ def save_metrics(metrics, output_path):
     directory = os.path.dirname(output_path)
     if directory:
         os.makedirs(directory, exist_ok=True)
-    with open(output_path, 'w', encoding='utf-8') as metrics_file:
+    with open(output_path, "w", encoding="utf-8") as metrics_file:
         json.dump(metrics, metrics_file, indent=2)
 
 
+def train_once(args):
+    if args.use_wandb:
+        wandb.init(project=args.wandb_project, name=args.run_name)
+
+    trainer, tokenizer = build_trainer(args)
+    train_result = trainer.train()
+    eval_metrics = trainer.evaluate()
+
+    trainer.save_model(args.output_dir)
+    tokenizer.save_pretrained(args.output_dir)
+
+    metrics = {
+        "train": train_result.metrics,
+        "eval": eval_metrics,
+    }
+    save_metrics(metrics, args.save_metrics_path)
+
+    if args.use_wandb:
+        wandb.log(eval_metrics)
+        wandb.finish()
+
+    return metrics
 
 
-    
+def build_sweep_config():
+    return {
+        "method": "bayes",
+        "metric": {
+            "name": "eval/rougeL",
+            "goal": "maximize",
+        },
+        "parameters": {
+            "learning_rate": {
+                "distribution": "log_uniform_values",
+                "min": 1e-5,
+                "max": 1e-4,
+            },
+            "weight_decay": {
+                "values": [0.01, 0.05, 0.1],
+            },
+            "batch_size": {
+                "values": [4, 8],
+            },
+            "num_epochs": {
+                "values": [3, 5],
+            },
+            "warmup_steps": {
+                "values": [100, 300, 500],
+            },
+        },
+    }
+
+
+def run_sweep(args):
+    sweep_id = wandb.sweep(build_sweep_config(), project=args.wandb_project)
+
+    def train_sweep():
+        with wandb.init(project=args.wandb_project):
+            trainer, _ = build_trainer(args, trial_config=wandb.config)
+            trainer.train()
+            metrics = trainer.evaluate()
+            wandb.log(metrics)
+
+    wandb.agent(sweep_id, function=train_sweep, count=args.sweep_count)
+
+
+def main():
+    args = parse_args()
+    if args.run_sweep:
+        if not args.use_wandb:
+            raise ValueError("--run-sweep requires --use-wandb.")
+        run_sweep(args)
+        return
+
+    metrics = train_once(args)
+    print(json.dumps(metrics, indent=2))
+
+
+if __name__ == "__main__":
+    main()
