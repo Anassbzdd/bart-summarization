@@ -1,5 +1,6 @@
 from datasets import load_dataset
 from transformers import BartTokenizer
+
 from config import (
     DATASET_NAME,
     DATASET_VERSION,
