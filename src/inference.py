@@ -3,7 +3,7 @@ import argparse
 import torch
 from transformers import BartForConditionalGeneration, BartTokenizer
 
-from config import MODEL_NAME
+from config import *
 
 
 def parse_args():
@@ -11,8 +11,8 @@ def parse_args():
     parser.add_argument("--model-path", default=MODEL_NAME)
     parser.add_argument("--text", default=None)
     parser.add_argument("--text-file", default=None)
-    parser.add_argument("--max-input-length", type=int, default=1024)
-    parser.add_argument("--max-summary-length", type=int, default=128)
+    parser.add_argument("--max-input-length", type=int, default=MAX_INPUT_LENGTH)
+    parser.add_argument("--max-summary-length", type=int, default=MAX_TARGET_LENGTH)
     parser.add_argument("--min-summary-length", type=int, default=20)
     parser.add_argument("--num-beams", type=int, default=4)
     return parser.parse_args()
@@ -45,6 +45,12 @@ def summarize(article, model, tokenizer, device, args):
     )
 
     return tokenizer.decode(output[0], skip_special_tokens=True)
+
+def load_model_and_tokenizer(model_path):
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    model = BartForConditionalGeneration.from_pretrained(model_path).to(device)
+    tokenizer = BartTokenizer.from_pretrained(model_path)
+    return model , tokenizer, device 
 
 
 def main():

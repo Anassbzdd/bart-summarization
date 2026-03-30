@@ -11,6 +11,7 @@ from transformers import (
     Seq2SeqTrainer,
     Seq2SeqTrainingArguments,
     DataCollatorForSeq2Seq,
+    EarlyStoppingCallback
 )
 
 from config import (
@@ -23,7 +24,10 @@ from config import (
     WANDB_PROJECT,
     WARMUP_STEPS,
     WEIGHT_DECAY,
+    EARLY_STOPPING_PATIENCE,
+    EARLY_STOPPING_THRESHOLD,
 )
+
 from preprocessing import get_datasets, get_tokenizer
 
 
@@ -128,7 +132,13 @@ def build_trainer(args, trial_config=None):
         data_collator=data_collator,
         train_dataset=train_data,
         eval_dataset=val_data,
-        compute_metrics=compute_metrics_builder(tokenizer)
+        compute_metrics=compute_metrics_builder(tokenizer),
+        callbacks=[
+            EarlyStoppingCallback(
+                early_stopping_patience= EARLY_STOPPING_PATIENCE,
+                early_stopping_threshold=EARLY_STOPPING_THRESHOLD,
+            )
+        ],
     )
     return trainer, tokenizer
 
