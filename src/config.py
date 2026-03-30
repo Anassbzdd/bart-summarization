@@ -15,19 +15,19 @@ MAX_INPUT_LENGTH  = 1024
 MAX_TARGET_LENGTH = 128
 
 # ---- subset ----
-TRAIN_SIZE        = 5000
-VAL_SIZE          = 500
-TEST_SIZE         = 3
+TRAIN_SIZE        = 20000
+VAL_SIZE          = 2000
+TEST_SIZE         = 1000
 
 # ---- model ----
 MODEL_NAME        = 'facebook/bart-base'
 
 # ---- training ----
 OUTPUT_DIR        = './results'
-NUM_EPOCHS        = 3
+NUM_EPOCHS        = 5
 BATCH_SIZE        = 8
-LEARNING_RATE     = 5e-5
-WARMUP_STEPS      = 300
+LEARNING_RATE     = 7.077906492967644e-5
+WARMUP_STEPS      = 500
 WEIGHT_DECAY      = 0.01
 FP16              = True
 LOGGING_STEPS     = 100
