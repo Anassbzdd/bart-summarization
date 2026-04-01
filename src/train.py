@@ -56,7 +56,7 @@ def parse_args():
     parser.add_argument("--run-sweep", action="store_true")
     parser.add_argument("--sweep-count", type=int, default=5)
     parser.add_argument('--early-stopping-patience', type=int, default=EARLY_STOPPING_PATIENCE)
-    parser.add_argument('--early-stopping-threshold', type=int, default=EARLY_STOPPING_THRESHOLD)
+    parser.add_argument('--early-stopping-threshold', type=float, default=EARLY_STOPPING_THRESHOLD)
     return parser.parse_args()
 
 
