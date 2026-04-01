@@ -57,6 +57,7 @@ def parse_args():
     parser.add_argument("--sweep-count", type=int, default=5)
     parser.add_argument('--early-stopping-patience', type=int, default=EARLY_STOPPING_PATIENCE)
     parser.add_argument('--early-stopping-threshold', type=float, default=EARLY_STOPPING_THRESHOLD)
+    parser.add_argument("--resume-from-checkpoint", default=None)
     return parser.parse_args()
 
 
@@ -109,7 +110,9 @@ def build_trainer(args, trial_config=None):
         output_dir=args.output_dir,
         save_total_limit=1,
         save_strategy="steps",
+        save_steps=500,
         eval_strategy="steps",
+        eval_steps=500,
         load_best_model_at_end=True,
         metric_for_best_model="rougeL",
         predict_with_generate=True,
@@ -137,8 +140,8 @@ def build_trainer(args, trial_config=None):
         compute_metrics=compute_metrics_builder(tokenizer),
         callbacks=[
             EarlyStoppingCallback(
-                early_stopping_patience= EARLY_STOPPING_PATIENCE,
-                early_stopping_threshold=EARLY_STOPPING_THRESHOLD,
+                early_stopping_patience= args.early_stopping_patience,
+                early_stopping_threshold=args.early_stopping_threshold,
             )
         ],
     )
@@ -160,7 +163,7 @@ def train_once(args):
         wandb.init(project=args.wandb_project, name=args.run_name)
 
     trainer, tokenizer = build_trainer(args)
-    train_result = trainer.train()
+    train_result = trainer.train(resume_from_checkpoint=args.resume_from_checkpoint)
     eval_metrics = trainer.evaluate()
 
     trainer.save_model(args.output_dir)
