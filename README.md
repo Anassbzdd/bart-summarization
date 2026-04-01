@@ -97,20 +97,6 @@ python src/inference.py --model-path outputs/bart-cnn --text-file sample_article
 python src/evaluate_model.py --model-path outputs/bart-cnn --test-size 100 --save-path outputs/bart-cnn/test_metrics.json
 ```
 
-## Recommended Portfolio Improvements
-
-If you want to keep improving this project, the highest-value next steps are:
-
-1. Increase the training subset or train on the full dataset.
-2. Compare multiple models such as `bart-base`, `bart-large-cnn`, and `t5-small`.
-3. Add qualitative examples that show article, reference summary, and model prediction side by side.
-4. Build a small Gradio or Streamlit demo for recruiters to try.
-5. Save W&B charts or screenshots in the repo so the results feel more concrete.
-
-## What I Learned
-
-This project demonstrates the practical workflow of adapting a pretrained transformer to a real summarization task, measuring quality with ROUGE, and organizing an ML repo so it is easier to reproduce and present.
-
 ## License
 
 This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
